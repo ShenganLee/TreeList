@@ -45,7 +45,7 @@ export default class TreeNode extends BaseTree<TreeNode> {
         let parent = this.parent
 
         while(parent) {
-            parents.push(parent)
+            parents.unshift(parent)
             parent = parent.parent
         }
 
