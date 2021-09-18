@@ -4,6 +4,43 @@ import TreeNode, { TreeData, ChildrenHandler } from "./TreeNode"
 const defaultChildrenKey = 'children'
 const symbolChildrenKey = Symbol('children')
 
+const newTreeListWithTreeNodes = (treeNodes: TreeNode[]): TreeList => {
+    treeNodes.sort((a, b) => b.deep - a.deep)
+
+    treeNodes.sort((a, b) => b.deep === a.deep ? a.index - b.index : 0)
+
+    const treeNodeSet = new Set(treeNodes)
+
+    const treeDataMap: Map<TreeNode, TreeData> = new Map()
+
+    treeNodeSet.forEach(node => {
+        treeDataMap.set(node, { ...node.data, [symbolChildrenKey]: [] })
+    })
+
+    const treeDataList: TreeData[] = []
+
+    treeNodeSet.forEach(node => {
+        if (node.parent) {
+            const nodeData = treeDataMap.get(node);
+            const parentData = treeDataMap.get(node.parent);
+
+            if (parentData) {
+                const children: TreeData[] = parentData?.[symbolChildrenKey] as TreeData[] ?? [];
+                children.push(nodeData as TreeData);
+                return
+            }
+        }
+
+        treeDataList.push(treeDataMap.get(node) as TreeData);
+    })
+
+    return new TreeList(treeDataList, (treeData: TreeData) => {
+        const children = treeData[symbolChildrenKey]
+        Reflect.deleteProperty(treeData, symbolChildrenKey)
+        return children as TreeData[]
+    })
+}
+
 export default class TreeList extends BaseTree<TreeNode> {
 
     static TreeNode = TreeNode;
@@ -32,43 +69,6 @@ export default class TreeList extends BaseTree<TreeNode> {
         return (deep ? this.deepNodes : this.nodes).every(node => fn(node.data, node))
     }
 
-    private newTreeListWithTreeNodes(treeNodes: TreeNode[]): TreeList {
-        treeNodes.sort((a, b) => b.deep - a.deep)
-
-        treeNodes.sort((a, b) => b.deep === a.deep ? a.index - b.index : 0)
-
-        const treeNodeSet = new Set(treeNodes)
-
-        const treeDataMap: Map<TreeNode, TreeData> = new Map()
-
-        treeNodeSet.forEach(node => {
-            treeDataMap.set(node, { ...node.data, [symbolChildrenKey]: [] })
-        })
-
-        const treeDataList: TreeData[] = []
-
-        treeNodeSet.forEach(node => {
-            if (node.parent) {
-                const nodeData = treeDataMap.get(node);
-                const parentData = treeDataMap.get(node.parent);
-
-                if (parentData) {
-                    const children: TreeData[] = parentData?.[symbolChildrenKey] as TreeData[] ?? [];
-                    children.push(nodeData as TreeData);
-                    return
-                }
-            }
-
-            treeDataList.push(treeDataMap.get(node) as TreeData);
-        })
-
-        return new TreeList(treeDataList, (treeData: TreeData) => {
-            const children = treeData[symbolChildrenKey]
-            Reflect.deleteProperty(treeData, symbolChildrenKey)
-            return children as TreeData[]
-        })
-    }
-
     filter(fn: (value: TreeData, node: TreeNode) => unknown, withParent = true, deep = true): TreeList {
         const nodes: TreeNode[] = (deep ? this.deepNodes : this.nodes).filter(node => fn(node.data, node));
 
@@ -78,7 +78,7 @@ export default class TreeList extends BaseTree<TreeNode> {
             treeNodes.unshift(...node.parents)
         }))
 
-        return this.newTreeListWithTreeNodes(treeNodes)
+        return newTreeListWithTreeNodes(treeNodes)
     }
 
     find(fn: (value: TreeData, node: TreeNode) => unknown, withParent = true, deep = true): TreeList {
@@ -89,7 +89,7 @@ export default class TreeList extends BaseTree<TreeNode> {
         const treeNodes = [node]
         withParent && treeNodes.unshift(...node.parents)
 
-        return this.newTreeListWithTreeNodes(treeNodes)
+        return newTreeListWithTreeNodes(treeNodes)
     }
 
     map(fn: (value: TreeData, node: TreeNode) => TreeData, childrenKey: string | symbol | number = symbolChildrenKey, deep = true): TreeList {
