@@ -4,7 +4,7 @@
 npm adduser
 
 # 加作用域
-npm init --scope=@shenganlee -y
+# npm init --scope=@shenganlee -y
 
 # 推送 公共发布
-npm publish --access public
+npm publish . --access public
